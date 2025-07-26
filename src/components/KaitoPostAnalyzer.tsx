@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const apiKey = "sk_2TtKemiGVsL1nfKzZok-uDjz9OBs1hTWu6H97pxwwqU";
+
 const model = "qwen/qwen2.5-7b-instruct";
 const endpoint = "https://api.novita.ai/v3/openai/chat/completions";
 
@@ -117,6 +117,7 @@ ${tweet}
 `;
 
         try {
+            const apiKey = "sk_2TtKemiGVsL1nfKzZok-uDjz9OBs1hTWu6H97pxwwqU";
             const res = await fetch(endpoint, {
                 method: "POST",
                 headers: {
