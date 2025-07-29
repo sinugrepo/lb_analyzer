@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ArrowUpDown, ArrowUp, ArrowDown, Download, Search, Users, Trophy, MessageCircle } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Download, Search, Users, Trophy, MessageCircle, Terminal, Copy, X } from 'lucide-react';
 import { LeaderboardEntry } from '../types/leaderboard';
 import { format } from 'date-fns';
 import Papa from 'papaparse';
@@ -21,6 +21,8 @@ export const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
   const [sortKey, setSortKey] = useState<SortKey>('rank');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showCommandModal, setShowCommandModal] = useState(false);
+  const [commandCopied, setCommandCopied] = useState(false);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -107,6 +109,26 @@ const exportToCSV = () => {
   document.body.removeChild(link);
 };
 
+const generateTwitterCommand = () => {
+  const usernames = filteredAndSortedData.map(entry => {
+    // Remove @ symbol if present and clean username
+    const cleanUsername = entry.username.replace('@', '');
+    return `from:${cleanUsername}`;
+  });
+  
+  return `(${usernames.join(', OR ')}) within_time:60min`;
+};
+
+const copyToClipboard = async () => {
+  try {
+    await navigator.clipboard.writeText(generateTwitterCommand());
+    setCommandCopied(true);
+    setTimeout(() => setCommandCopied(false), 2000);
+  } catch (err) {
+    console.error('Failed to copy text: ', err);
+  }
+};
+
   const getSortIcon = (key: SortKey) => {
     if (sortKey !== key) return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
     return sortDirection === 'asc' 
@@ -165,6 +187,13 @@ const exportToCSV = () => {
                 className="pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
               />
             </div>
+            <button
+              onClick={() => setShowCommandModal(true)}
+              className="flex items-center space-x-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              <Terminal className="h-4 w-4" />
+              <span>Generate Command</span>
+            </button>
             <button
               onClick={exportToCSV}
               className="flex items-center space-x-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors"
@@ -284,6 +313,79 @@ const exportToCSV = () => {
           </div>
         )}
       </div>
+
+      {/* Command Modal */}
+      {showCommandModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-4xl max-h-[80vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center space-x-3">
+                <Terminal className="h-6 w-6 text-green-500" />
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Twitter Search Command
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowCommandModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 p-6 overflow-hidden">
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Copy this command to search for tweets from all {filteredAndSortedData.length} contributors in the last 60 minutes:
+                </p>
+              </div>
+              
+              <div className="relative">
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-600 p-4 max-h-64 overflow-y-auto">
+                  <code className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-all font-mono">
+                    {generateTwitterCommand()}
+                  </code>
+                </div>
+                
+                <button
+                  onClick={copyToClipboard}
+                  className={`absolute top-3 right-3 flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    commandCopied
+                      ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
+                      : 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800'
+                  }`}
+                >
+                  <Copy className="h-4 w-4" />
+                  <span>{commandCopied ? 'Copied!' : 'Copy'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowCommandModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={copyToClipboard}
+                className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                  commandCopied
+                    ? 'bg-green-500 text-white'
+                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                }`}
+              >
+                <Copy className="h-4 w-4" />
+                <span>{commandCopied ? 'Copied!' : 'Copy Command'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
